@@ -85,19 +85,19 @@ impl eframe::App for App {
             egui::SidePanel::left("left_panel")
                 .resizable(true)
                 .default_width(300.0)
-                //.width_range(80.0..=440.0)
                 .show_inside(ui, |ui| {
-                    let current_level = match self.selected_level {
-                        Some(level_index) => match self.available_levels.get(level_index) {
-                            Some(level) => format!(
-                                "{} by {}",
+                    let current_level = self
+                        .selected_level
+                        .and_then(|index| self.available_levels.get(index))
+                        .map(|level| {
+                            format!(
+                                "{} by: {}",
                                 level.song_name.to_owned(),
                                 level.song_author.to_owned()
-                            ),
-                            None => "Unknown".to_string(),
-                        },
-                        None => "Select level".to_string(),
-                    };
+                            )
+                        })
+                        .unwrap_or_else(|| "Select level:".to_owned());
+
                     ui.vertical_centered(|ui| {
                         ui.button("Force reload");
                         ui.heading(current_level);
@@ -109,14 +109,18 @@ impl eframe::App for App {
                             self.available_levels.len(),
                             |ui, range| {
                                 for row in range {
-                                    let level = self.available_levels.get(row);
-                                    let (song_name, author) = match level {
-                                        Some(level) => {
-                                            (level.song_name.as_str(), level.song_author.as_str())
-                                        }
-                                        None => ("Unknown", "Unknown"),
-                                    };
-                                    let text = format!("{} by {}", song_name, author);
+                                    let text = self
+                                        .available_levels
+                                        .get(row)
+                                        .map(|level| {
+                                            format!(
+                                                "{} by: {}",
+                                                level.song_name.to_owned(),
+                                                level.song_author.to_owned()
+                                            )
+                                        })
+                                        .unwrap_or_else(|| "Unknown".to_owned());
+
                                     if ui
                                         .add(egui::Label::new(&text).sense(Sense::click()))
                                         .clicked()
@@ -132,7 +136,6 @@ impl eframe::App for App {
             egui::SidePanel::right("right_panel")
                 .resizable(true)
                 .default_width(300.0)
-                //.width_range(80.0..=440.0)
                 .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.horizontal(|ui| {
@@ -150,7 +153,6 @@ impl eframe::App for App {
                         |ui, range| {
                             for row in range {
                                 if let Some(playlist) = self.playlists.get(row) {
-                                    //ui.heading(playlist.title.to_string());
                                     if ui
                                         .add(
                                             egui::Label::new(playlist.title.to_string())
@@ -162,7 +164,6 @@ impl eframe::App for App {
                                         self.selected_song = None;
                                     }
                                 }
-                                //ui.heading("some playlist");
                             }
                         },
                     );
@@ -173,58 +174,51 @@ impl eframe::App for App {
                 .min_height(0.0)
                 .show_inside(ui, |ui| {
                     ui.horizontal_centered(|ui| {
-                        //ui.heading("Bottom Panel");
                         if ui.button(">>").clicked() {
                             self.add_selected_song_to_selected_playlist();
                             self.selected_level = None;
                         }
                         if ui.button("X").clicked() {
                             self.remove_selected_song_from_selected_playlist();
+                            self.selected_song = None;
                         }
                     });
                 });
 
             egui::CentralPanel::default().show_inside(ui, |ui| {
-                // let selected_playlist = match self.selected_playlist {
-                //     Some(index) => match self.playlists.get(index) {
-                //         Some(playlist) => playlist.title.to_string(),
-                //         None => "Unknown".to_string(),
-                //     },
-                //     None => "Select playlist".to_string(),
-                // };
-                if let Some(selected_playlist_index) = self.selected_playlist {
-                    if let Some(playlist) = self.playlists.get(selected_playlist_index) {
-                        ui.vertical_centered(|ui| {
-                            ui.heading(playlist.title.to_string());
-                            if let Some(song_index) = self.selected_song {
-                                if let Some(song) = playlist.songs.get(song_index) {
-                                    ui.heading(song.name.to_string());
+                if let Some(playlist) = self
+                    .selected_playlist
+                    .and_then(|index| self.playlists.get(index))
+                {
+                    ui.vertical_centered(|ui| {
+                        ui.heading(playlist.title.to_string());
+                        if let Some(song) = self
+                            .selected_song
+                            .and_then(|index| playlist.songs.get(index))
+                        {
+                            ui.heading(song.name.to_owned());
+                        }
+                    });
+                    egui::ScrollArea::vertical().show_rows(
+                        ui,
+                        row_height,
+                        playlist.songs.len(),
+                        |ui, range| {
+                            for row in range {
+                                if let Some(song) = playlist.songs.get(row) {
+                                    if ui
+                                        .add(
+                                            egui::Label::new(song.name.to_string())
+                                                .sense(Sense::click()),
+                                        )
+                                        .clicked()
+                                    {
+                                        self.selected_song = Some(row)
+                                    }
                                 }
                             }
-                        });
-                        egui::ScrollArea::vertical().show_rows(
-                            ui,
-                            row_height,
-                            playlist.songs.len(),
-                            |ui, range| {
-                                for row in range {
-                                    if let Some(song) = playlist.songs.get(row) {
-                                        if ui
-                                            .add(
-                                                egui::Label::new(song.name.to_string())
-                                                    .sense(Sense::click()),
-                                            )
-                                            .clicked()
-                                        {
-                                            self.selected_song = Some(row)
-                                        }
-                                        //ui.label(song.name.to_string());
-                                    }
-                                    //ui.heading("some song");
-                                }
-                            },
-                        );
-                    }
+                        },
+                    );
                 }
             });
         });
