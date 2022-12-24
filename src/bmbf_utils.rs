@@ -41,6 +41,8 @@ pub struct Playlist {
     pub songs: Vec<Song>,
     #[serde(skip)]
     pub changed: bool,
+    #[serde(skip)]
+    pub file_name: String,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -108,6 +110,28 @@ pub fn get_playlists() -> Vec<Playlist> {
     read_playlists_from_device(&get_device_folder())
 }
 
+pub fn save_modified_playlists(playlists: &[Playlist]) {
+    let path = format!("{}/{}{}", BASE_PATH, get_device_folder(), PLAYLISTS_PATH);
+    playlists
+        .iter()
+        .filter(|playlist| playlist.changed)
+        .map(|playlist| {
+            (
+                serde_json::to_string(playlist).unwrap_or_else(|_| " ".to_string()),
+                &playlist.file_name,
+            )
+        })
+        .for_each(|(serialized_playlist, file_name)| {
+            match File::create(format!("{}/{}", path, file_name)) {
+                Ok(mut file) => match file.write_all(serialized_playlist.as_bytes()) {
+                    Ok(_) => println!("Playlist saved to {}", file_name),
+                    Err(_) => println!("Can't save playlist to {}", file_name),
+                },
+                Err(_) => println!("Can't create playlist file."),
+            }
+        });
+}
+
 pub fn is_playlist_contains_song(playlist: &Playlist, song: Song) -> bool {
     playlist
         .songs
@@ -125,6 +149,11 @@ fn read_playlists_from_device(oculus_folder_name: &str) -> Vec<Playlist> {
                 if let Ok(string) = fs::read_to_string(dir_entry.path()) {
                     if let Ok(mut playlist) = serde_json::from_str::<Playlist>(&string) {
                         playlist.changed = false;
+                        playlist.file_name = dir_entry
+                            .file_name()
+                            .to_str()
+                            .unwrap_or("default_playlist_name.json")
+                            .to_string();
                         playlists.push(playlist);
                     } else {
                         println!(
