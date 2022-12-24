@@ -10,11 +10,8 @@ struct App {
     playlists: Vec<Playlist>,
     selected_playlist: Option<usize>,
     selected_song: Option<usize>,
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    Test(i32),
+    text_input: String,
+    create_new_playlist: bool,
 }
 
 fn main() {
@@ -71,6 +68,8 @@ fn main() {
                 selected_level: None,
                 selected_playlist: None,
                 selected_song: None,
+                text_input: "name".to_owned(),
+                create_new_playlist: false,
             })
         }),
     );
@@ -139,10 +138,41 @@ impl eframe::App for App {
                 .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.horizontal(|ui| {
-                            ui.button("+");
+                            if ui.button("+").clicked() {
+                                self.create_new_playlist = true;
+                            }
                             ui.button("Save to device");
                         });
+                        if self.create_new_playlist {
+                            let response = ui.add(egui::TextEdit::singleline(&mut self.text_input));
+                            ui.horizontal(|ui| {
+                                if ui.button("Cancel").clicked() {
+                                    self.create_new_playlist = false;
+                                }
 
+                                if ui.button("Add").clicked() {
+                                    self.create_new_playlist = false;
+                                    let title = self.text_input.to_string();
+
+                                    if !self
+                                        .playlists
+                                        .iter()
+                                        .any(|playlist| playlist.title.eq(&title))
+                                    {
+                                        let new_playlist = Playlist {
+                                            file_name: format!("{}.json", title),
+                                            changed: true,
+                                            songs: Vec::new(),
+                                            title,
+                                            description: None,
+                                        };
+                                        self.playlists.push(new_playlist);
+                                    } else {
+                                        println!("Playlist with the same title already exists!");
+                                    }
+                                }
+                            });
+                        }
                         ui.heading("Playlists:");
                     });
 
@@ -252,20 +282,40 @@ impl App {
         if let (Some(playlist_index), Some(song_index)) =
             (self.selected_playlist, self.selected_song)
         {
-            if let Some(playlist) = self.playlists.get_mut(playlist_index) {
-                if let Some(_song) = playlist.songs.get(song_index) {
-                    let song = playlist.songs.remove(song_index);
-                    if let Some(custom_level) = self.custom_levels.iter().find(|level| {
+            // if let Some(playlist) = self.playlists.get_mut(playlist_index) {
+            //     if let Some(_song) = playlist.songs.get(song_index) {
+            //         let song = playlist.songs.remove(song_index);
+            //         if let Some(custom_level) = self.custom_levels.iter().find(|level| {
+            //             level
+            //                 .hash
+            //                 .as_ref()
+            //                 .unwrap_or(&"unknown".to_string())
+            //                 .eq(&song.hash)
+            //         }) {
+            //             self.available_levels.push(custom_level.clone());
+            //         }
+            //     }
+            // }
+            // self.selected_playlist.zip(self.selected_song).iter().for_each(|(playlist_index, song_index)|{
+
+            // });
+
+            self.playlists
+                .get_mut(playlist_index)
+                .map(|playlist| playlist.songs.remove(song_index))
+                .and_then(|song| {
+                    self.custom_levels.iter().find(|level| {
                         level
                             .hash
                             .as_ref()
                             .unwrap_or(&"unknown".to_string())
                             .eq(&song.hash)
-                    }) {
-                        self.available_levels.push(custom_level.clone());
-                    }
-                }
-            }
+                    })
+                })
+                .into_iter()
+                .for_each(|level| {
+                    self.available_levels.push(level.clone());
+                })
         }
     }
 }
