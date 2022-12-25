@@ -141,12 +141,18 @@ impl eframe::App for App {
                             if ui.button("+").clicked() {
                                 self.create_new_playlist = true;
                             }
+                            if let Some(selected_playlist) = self.get_selected_playlist() {
+                                if selected_playlist.just_created && ui.button("-").clicked() {
+                                    self.remove_selected_playlist();
+                                }
+                            }
+
                             if ui.button("Save to device").clicked() {
                                 save_modified_playlists(&self.playlists);
                             }
                         });
                         if self.create_new_playlist {
-                            let response = ui.add(egui::TextEdit::singleline(&mut self.text_input));
+                            ui.add(egui::TextEdit::singleline(&mut self.text_input));
                             ui.horizontal(|ui| {
                                 if ui.button("Cancel").clicked() {
                                     self.create_new_playlist = false;
@@ -164,6 +170,7 @@ impl eframe::App for App {
                                         let new_playlist = Playlist {
                                             file_name: format!("{}.json", title),
                                             changed: true,
+                                            just_created: true,
                                             songs: Vec::new(),
                                             title,
                                             ..Default::default()
@@ -258,6 +265,18 @@ impl eframe::App for App {
 }
 
 impl App {
+    fn get_selected_playlist(&self) -> Option<&Playlist> {
+        self.selected_playlist
+            .and_then(|index| self.playlists.get(index))
+    }
+
+    fn remove_selected_playlist(&mut self) {
+        if let Some(index) = self.selected_playlist {
+            self.playlists.remove(index);
+            self.selected_playlist = None;
+        }
+    }
+
     fn add_selected_song_to_selected_playlist(&mut self) {
         if let (Some(playlist_index), Some(level_index)) =
             (self.selected_playlist, self.selected_level)

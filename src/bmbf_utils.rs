@@ -43,6 +43,8 @@ pub struct Playlist {
     #[serde(skip)]
     pub changed: bool,
     #[serde(skip)]
+    pub just_created: bool,
+    #[serde(skip)]
     pub file_name: String,
     #[serde(rename = "imageString")]
     #[serde(skip_serializing_if = "Option::is_none")]
