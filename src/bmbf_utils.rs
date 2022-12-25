@@ -248,21 +248,6 @@ fn read_custom_levels_from_device(oculus_folder_name: &str) -> Vec<CustomLevel> 
     custom_levels
 }
 
-// pub fn cache_custom_levels(custom_levels: &[CustomLevel]) {
-//     println!("Attempting to cache custom levels.");
-//     let serialized_levels =
-//         serde_json::to_string(custom_levels).unwrap_or_else(|_| "[]".to_string());
-//     println!("Len of serialized_levels: {} ", serialized_levels.len());
-//     let file = File::create("custom_levels.json");
-//     match file {
-//         Ok(mut file) => match file.write_all(serialized_levels.as_bytes()) {
-//             Ok(_) => println!("Custom levels cached to custom_levels.json"),
-//             Err(_) => println!("Can't write cache to custom_levels.json"),
-//         },
-//         Err(_) => println!("Can't create file for cached levels."),
-//     }
-// }
-
 fn cache<T: Serialize>(entities: &[T], file_name: &str) {
     let serialized = serde_json::to_string(entities).unwrap_or_else(|_| "[]".to_string());
     println!("Attempting to serialize entities to {}", file_name);
@@ -290,25 +275,6 @@ fn read_from_cache<T: DeserializeOwned>(file_name: &str) -> Option<Vec<T>> {
         }
     }
 }
-
-// pub fn read_cached_custom_levels() -> Option<Vec<CustomLevel>> {
-//     match fs::read_to_string("custom_levels.json") {
-//         Ok(string) => {
-//             let custom_levels = serde_json::from_str::<Vec<CustomLevel>>(string.as_str())
-//                 .unwrap_or_else(|_| Vec::<CustomLevel>::new());
-//             println!("Custom levels retrived from cache.");
-//             Some(custom_levels)
-//         }
-//         Err(_) => {
-//             println!("Can't read cached levels.");
-//             None
-//         }
-//     }
-// }
-
-// fn is_cache_file_exists() -> bool {
-//     fs::File::open("custom_levels.jsom").is_ok()
-// }
 
 fn count_custom_levels_on_device(oculus_folder_name: &str) -> Option<usize> {
     let path = format!("{}/{}{}", BASE_PATH, oculus_folder_name, SONGS_PATH);

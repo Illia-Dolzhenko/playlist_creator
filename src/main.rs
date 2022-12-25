@@ -84,7 +84,6 @@ impl eframe::App for App {
                 .resizable(true)
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-
                     ui.vertical_centered(|ui| {
                         ui.button("Force reload");
                     });
@@ -153,26 +152,7 @@ impl eframe::App for App {
                                 }
 
                                 if ui.button("Add").clicked() {
-                                    self.create_new_playlist = false;
-                                    let title = self.text_input.to_string();
-
-                                    if !self
-                                        .playlists
-                                        .iter()
-                                        .any(|playlist| playlist.title.eq(&title))
-                                    {
-                                        let new_playlist = Playlist {
-                                            file_name: format!("{}.json", title),
-                                            changed: true,
-                                            just_created: true,
-                                            songs: Vec::new(),
-                                            title,
-                                            ..Default::default()
-                                        };
-                                        self.playlists.push(new_playlist);
-                                    } else {
-                                        println!("Playlist with the same title already exists!");
-                                    }
+                                    self.create_new_playlist();
                                 }
                             });
                         }
@@ -192,12 +172,10 @@ impl eframe::App for App {
                                         .unwrap_or_else(|| false);
 
                                     if ui
-                                        .add(
-                                            egui::SelectableLabel::new(
-                                                is_selected,
-                                                playlist.title.to_string(),
-                                            ),
-                                        )
+                                        .add(egui::SelectableLabel::new(
+                                            is_selected,
+                                            playlist.title.to_string(),
+                                        ))
                                         .clicked()
                                     {
                                         self.selected_playlist = Some(row);
@@ -246,12 +224,10 @@ impl eframe::App for App {
                                         .unwrap_or_else(|| false);
 
                                     if ui
-                                        .add(
-                                            egui::SelectableLabel::new(
-                                                is_selected,
-                                                song.name.to_string(),
-                                            ),
-                                        )
+                                        .add(egui::SelectableLabel::new(
+                                            is_selected,
+                                            song.name.to_string(),
+                                        ))
                                         .clicked()
                                     {
                                         self.selected_song = Some(row)
@@ -267,6 +243,29 @@ impl eframe::App for App {
 }
 
 impl App {
+    fn create_new_playlist(&mut self) {
+        let title = self.text_input.to_string();
+
+        if !self
+            .playlists
+            .iter()
+            .any(|playlist| playlist.title.eq(&title))
+        {
+            let new_playlist = Playlist {
+                file_name: format!("{}.json", title),
+                changed: true,
+                just_created: true,
+                songs: Vec::new(),
+                title,
+                ..Default::default()
+            };
+            self.playlists.push(new_playlist);
+            self.create_new_playlist = false;
+        } else {
+            println!("Playlist with the same title already exists!");
+        }
+    }
+
     fn get_selected_playlist(&self) -> Option<&Playlist> {
         self.selected_playlist
             .and_then(|index| self.playlists.get(index))
