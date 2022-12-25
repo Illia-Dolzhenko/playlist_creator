@@ -1,5 +1,4 @@
 use bmbf_utils::*;
-use egui::Sense;
 
 pub mod bmbf_utils;
 
@@ -85,21 +84,9 @@ impl eframe::App for App {
                 .resizable(true)
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
-                    let current_level = self
-                        .selected_level
-                        .and_then(|index| self.available_levels.get(index))
-                        .map(|level| {
-                            format!(
-                                "{} by: {}",
-                                level.song_name.to_owned(),
-                                level.song_author.to_owned()
-                            )
-                        })
-                        .unwrap_or_else(|| "Select level:".to_owned());
 
                     ui.vertical_centered(|ui| {
                         ui.button("Force reload");
-                        ui.heading(current_level);
                     });
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         egui::ScrollArea::vertical().show_rows(
@@ -120,8 +107,15 @@ impl eframe::App for App {
                                         })
                                         .unwrap_or_else(|| "Unknown".to_owned());
 
+                                    let is_selected = self
+                                        .selected_level
+                                        .map(|index| index == row)
+                                        .unwrap_or_else(|| false);
+
                                     if ui
-                                        .add(egui::Label::new(&text).sense(Sense::click()))
+                                        .add(
+                                            egui::SelectableLabel::new(is_selected, &text), //.sense(Sense::click()),
+                                        )
                                         .clicked()
                                     {
                                         self.selected_level = Some(row);
@@ -192,10 +186,17 @@ impl eframe::App for App {
                         |ui, range| {
                             for row in range {
                                 if let Some(playlist) = self.playlists.get(row) {
+                                    let is_selected = self
+                                        .selected_playlist
+                                        .map(|index| index == row)
+                                        .unwrap_or_else(|| false);
+
                                     if ui
                                         .add(
-                                            egui::Label::new(playlist.title.to_string())
-                                                .sense(Sense::click()),
+                                            egui::SelectableLabel::new(
+                                                is_selected,
+                                                playlist.title.to_string(),
+                                            ),
                                         )
                                         .clicked()
                                     {
@@ -231,12 +232,6 @@ impl eframe::App for App {
                 {
                     ui.vertical_centered(|ui| {
                         ui.heading(playlist.title.to_string());
-                        if let Some(song) = self
-                            .selected_song
-                            .and_then(|index| playlist.songs.get(index))
-                        {
-                            ui.heading(song.name.to_owned());
-                        }
                     });
                     egui::ScrollArea::vertical().show_rows(
                         ui,
@@ -245,10 +240,17 @@ impl eframe::App for App {
                         |ui, range| {
                             for row in range {
                                 if let Some(song) = playlist.songs.get(row) {
+                                    let is_selected = self
+                                        .selected_song
+                                        .map(|index| index == row)
+                                        .unwrap_or_else(|| false);
+
                                     if ui
                                         .add(
-                                            egui::Label::new(song.name.to_string())
-                                                .sense(Sense::click()),
+                                            egui::SelectableLabel::new(
+                                                is_selected,
+                                                song.name.to_string(),
+                                            ),
                                         )
                                         .clicked()
                                     {
