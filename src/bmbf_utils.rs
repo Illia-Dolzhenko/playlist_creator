@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{self, read_dir, File},
     io::Write,
     time::{Duration, SystemTime},
@@ -34,15 +35,26 @@ pub struct CustomLevel {
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct Playlist {
-    #[serde(alias = "playlistTitle")]
+    #[serde(rename = "playlistTitle")]
     pub title: String,
-    #[serde(alias = "playlistDescription")]
+    #[serde(rename = "playlistDescription")]
     pub description: Option<String>,
     pub songs: Vec<Song>,
     #[serde(skip)]
     pub changed: bool,
     #[serde(skip)]
     pub file_name: String,
+    #[serde(rename = "imageString")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
+    #[serde(rename = "playlistAuthor")]
+    pub author: Option<String>,
+    #[serde(rename = "syncURL")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sync_url: Option<String>,
+    #[serde(rename = "customData")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_data: Option<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -111,7 +123,10 @@ pub fn get_playlists() -> Vec<Playlist> {
 }
 
 pub fn save_modified_playlists(playlists: &[Playlist]) {
-    let path = format!("{}/{}{}", BASE_PATH, get_device_folder(), PLAYLISTS_PATH);
+    let count = playlists.iter().filter(|p| p.changed).count();
+    println!("Trying to save {} playlists.", count);
+    //let path = format!("{}/{}{}", BASE_PATH, get_device_folder(), PLAYLISTS_PATH);
+    let path = "";
     playlists
         .iter()
         .filter(|playlist| playlist.changed)
@@ -122,7 +137,8 @@ pub fn save_modified_playlists(playlists: &[Playlist]) {
             )
         })
         .for_each(|(serialized_playlist, file_name)| {
-            match File::create(format!("{}/{}", path, file_name)) {
+            // match File::create(format!("{}/{}", path, file_name)) {
+            match File::create(file_name) {
                 Ok(mut file) => match file.write_all(serialized_playlist.as_bytes()) {
                     Ok(_) => println!("Playlist saved to {}", file_name),
                     Err(_) => println!("Can't save playlist to {}", file_name),

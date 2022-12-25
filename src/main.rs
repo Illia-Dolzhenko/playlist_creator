@@ -141,7 +141,9 @@ impl eframe::App for App {
                             if ui.button("+").clicked() {
                                 self.create_new_playlist = true;
                             }
-                            ui.button("Save to device");
+                            if ui.button("Save to device").clicked() {
+                                save_modified_playlists(&self.playlists);
+                            }
                         });
                         if self.create_new_playlist {
                             let response = ui.add(egui::TextEdit::singleline(&mut self.text_input));
@@ -164,7 +166,7 @@ impl eframe::App for App {
                                             changed: true,
                                             songs: Vec::new(),
                                             title,
-                                            description: None,
+                                            ..Default::default()
                                         };
                                         self.playlists.push(new_playlist);
                                     } else {
@@ -273,6 +275,7 @@ impl App {
                         .to_string(),
                 });
 
+                playlist.changed = true;
                 self.available_levels.remove(level_index);
             }
         }
@@ -302,7 +305,10 @@ impl App {
 
             self.playlists
                 .get_mut(playlist_index)
-                .map(|playlist| playlist.songs.remove(song_index))
+                .map(|playlist| {
+                    playlist.changed = true;
+                    playlist.songs.remove(song_index)
+                })
                 .and_then(|song| {
                     self.custom_levels.iter().find(|level| {
                         level
