@@ -1,6 +1,18 @@
+use std::fmt;
+
 use bmbf_utils::*;
 
 pub mod bmbf_utils;
+
+#[derive(PartialEq)]
+enum Sorting {
+    BPMDsc,
+    BPMAsc,
+    NameDsc,
+    NameAsc,
+    ModifiedDsc,
+    ModifiedAsc,
+}
 
 struct App {
     custom_levels: Vec<CustomLevel>,
@@ -11,6 +23,7 @@ struct App {
     selected_song: Option<usize>,
     text_input: String,
     create_new_playlist: bool,
+    sort: Sorting,
 }
 
 fn main() {
@@ -69,6 +82,7 @@ fn main() {
                 selected_song: None,
                 text_input: "name".to_owned(),
                 create_new_playlist: false,
+                sort: Sorting::ModifiedDsc,
             })
         }),
     );
@@ -86,6 +100,47 @@ impl eframe::App for App {
                 .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.button("Force reload");
+                        ui.horizontal(|ui| {
+                            egui::ComboBox::from_id_source("sorting_combo_box")
+                                .selected_text(self.sort.to_string())
+                                .show_ui(ui, |ui| {
+                                    let responses = [
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::BPMAsc,
+                                            "BPM Ascending",
+                                        ),
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::BPMDsc,
+                                            "BPM Descending",
+                                        ),
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::NameAsc,
+                                            "Name Ascending",
+                                        ),
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::NameDsc,
+                                            "Name Descending",
+                                        ),
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::ModifiedAsc,
+                                            "Created Ascending",
+                                        ),
+                                        ui.selectable_value(
+                                            &mut self.sort,
+                                            Sorting::ModifiedDsc,
+                                            "Created Descending",
+                                        ),
+                                    ];
+                                    if responses.iter().any(|response| response.clicked()) {
+                                        self.sort();
+                                    }
+                                });
+                        });
                     });
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         egui::ScrollArea::vertical().show_rows(
@@ -99,7 +154,8 @@ impl eframe::App for App {
                                         .get(row)
                                         .map(|level| {
                                             format!(
-                                                "{} by: {}",
+                                                "{}, {} by: {}",
+                                                level.beats_per_minute as i32,
                                                 level.song_name.to_owned(),
                                                 level.song_author.to_owned()
                                             )
@@ -243,6 +299,44 @@ impl eframe::App for App {
 }
 
 impl App {
+    fn sort(&mut self) {
+        match self.sort {
+            Sorting::BPMDsc => {
+                self.sort_bpm();
+                self.available_levels.reverse();
+            }
+            Sorting::BPMAsc => self.sort_bpm(),
+            Sorting::NameDsc => {
+                self.sort_name();
+                self.available_levels.reverse();
+            }
+            Sorting::NameAsc => self.sort_name(),
+            Sorting::ModifiedDsc => {
+                self.sort_modified();
+                self.available_levels.reverse();
+            }
+            Sorting::ModifiedAsc => self.sort_modified(),
+        }
+    }
+
+    fn sort_bpm(&mut self) {
+        self.available_levels.sort_by(|level_1, level_2| {
+            level_1
+                .beats_per_minute
+                .total_cmp(&level_2.beats_per_minute)
+        });
+    }
+
+    fn sort_name(&mut self) {
+        self.available_levels
+            .sort_by(|level_1, level_2| level_1.song_name.cmp(&level_2.song_name));
+    }
+
+    fn sort_modified(&mut self) {
+        self.available_levels
+            .sort_by(|level_1, level_2| level_1.modified.cmp(&level_2.modified))
+    }
+
     fn create_new_playlist(&mut self) {
         let title = self.text_input.to_string();
 
@@ -342,6 +436,19 @@ impl App {
                 .for_each(|level| {
                     self.available_levels.push(level.clone());
                 })
+        }
+    }
+}
+
+impl fmt::Display for Sorting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Sorting::BPMDsc => write!(f, "BPM \\/"),
+            Sorting::BPMAsc => write!(f, "BPM /\\"),
+            Sorting::NameDsc => write!(f, "Name \\/"),
+            Sorting::NameAsc => write!(f, "Name /\\"),
+            Sorting::ModifiedDsc => write!(f, "Created \\/"),
+            Sorting::ModifiedAsc => write!(f, "Created /\\"),
         }
     }
 }
