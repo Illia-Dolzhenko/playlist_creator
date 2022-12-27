@@ -1,3 +1,4 @@
+use levenshtein::levenshtein;
 use std::fmt;
 
 use bmbf_utils::*;
@@ -22,6 +23,7 @@ struct App {
     selected_playlist: Option<usize>,
     selected_song: Option<usize>,
     text_input: String,
+    level_search: String,
     create_new_playlist: bool,
     sort: Sorting,
 }
@@ -84,6 +86,7 @@ fn main() {
                 selected_playlist: None,
                 selected_song: None,
                 text_input: "name".to_owned(),
+                level_search: "".to_owned(),
                 create_new_playlist: false,
                 sort: Sorting::ModifiedDsc,
             })
@@ -102,7 +105,6 @@ impl eframe::App for App {
                 .default_width(300.0)
                 .show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
-                        ui.button("Force reload");
                         ui.horizontal(|ui| {
                             egui::ComboBox::from_id_source("sorting_combo_box")
                                 .selected_text(self.sort.to_string())
@@ -143,6 +145,16 @@ impl eframe::App for App {
                                         self.sort();
                                     }
                                 });
+
+                            ui.button("Force reload");
+                        });
+                        ui.horizontal(|ui| {
+                            let search_response =
+                                ui.add(egui::TextEdit::singleline(&mut self.level_search));
+
+                            if !self.level_search.is_empty() && search_response.changed() {
+                                self.levenshtein_sort();
+                            }
                         });
                     });
                     egui::ScrollArea::vertical().show(ui, |ui| {
@@ -302,6 +314,13 @@ impl eframe::App for App {
 }
 
 impl App {
+    fn levenshtein_sort(&mut self) {
+        self.available_levels.sort_by(|level_1, level_2| {
+            levenshtein(&level_1.song_name, &self.level_search)
+                .cmp(&levenshtein(&level_2.song_name, &self.level_search))
+        })
+    }
+
     fn sort(&mut self) {
         match self.sort {
             Sorting::BPMDsc => {
