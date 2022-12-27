@@ -29,7 +29,7 @@ struct App {
 fn main() {
     let mut custom_levels = get_custom_levels();
     println!("CustomLevels size: {}", custom_levels.len());
-    custom_levels.sort_by(|a, b| a.modified.cmp(&b.modified));
+    //custom_levels.sort_by(|a, b| a.modified.cmp(&b.modified));
     for level in custom_levels.iter() {
         println!(
             "Song name: {}, modified: {}",
@@ -52,7 +52,7 @@ fn main() {
     println!("Number of songs in all playlists: {}", p_songs);
     println!("Custom levels total: {}", custom_levels.len());
 
-    let available_levels: Vec<CustomLevel> = custom_levels
+    let mut available_levels: Vec<CustomLevel> = custom_levels
         .iter()
         .cloned()
         .filter(|level| {
@@ -68,6 +68,9 @@ fn main() {
         "Custom levels that are not in any playlists: {}",
         available_levels.len()
     );
+
+    available_levels.sort_by(|level_1, level_2| level_1.modified.cmp(&level_2.modified));
+    available_levels.reverse();
 
     eframe::run_native(
         "Playlist Creator",
@@ -366,10 +369,33 @@ impl App {
     }
 
     fn remove_selected_playlist(&mut self) {
+        if let Some(playlist) = self.get_selected_playlist() {
+            let mut levels: Vec<CustomLevel> = playlist
+                .songs
+                .iter()
+                .flat_map(|song| self.find_level_by_hash(&song.hash))
+                .collect();
+            self.available_levels.append(&mut levels);
+            self.sort();
+        }
+
         if let Some(index) = self.selected_playlist {
             self.playlists.remove(index);
             self.selected_playlist = None;
         }
+    }
+
+    fn find_level_by_hash(&self, hash: &str) -> Option<CustomLevel> {
+        self.custom_levels
+            .iter()
+            .find(|level| {
+                if let Some(level_hash) = &level.hash {
+                    level_hash.eq(hash)
+                } else {
+                    false
+                }
+            })
+            .cloned()
     }
 
     fn add_selected_song_to_selected_playlist(&mut self) {
